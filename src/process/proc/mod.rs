@@ -381,6 +381,8 @@ pub struct Proc {
     pub data: UnsafeCell<ProcData>,
     /// 标识进程是否被杀死的原子布尔变量，用于调度和信号处理。
     pub killed: AtomicBool,
+    /// trace mask
+    pub trace_mask:usize,
 }
 
 impl Proc {
@@ -390,6 +392,7 @@ impl Proc {
             excl: SpinLock::new(ProcExcl::new(), "ProcExcl"),
             data: UnsafeCell::new(ProcData::new()),
             killed: AtomicBool::new(false),
+            trace_mask:0,
         }
     }
 
@@ -520,6 +523,7 @@ impl Proc {
             19 => self.sys_link(),
             20 => self.sys_mkdir(),
             21 => self.sys_close(),
+            22 => self.sys_trace(),
             _ => {
                 panic!("unknown syscall num: {}", a7);
             }
@@ -528,6 +532,16 @@ impl Proc {
             Ok(ret) => ret,
             Err(()) => -1isize as usize,
         };
+
+        // ===== trace print logic =====
+        let mask = self.data.get_mut().trace_mask;
+        if (mask & (1 << a7)) != 0 {
+            let pid = self.excl.lock().pid;
+            let name = SYSCALL_NAMES
+                .get(a7)
+                .unwrap_or(&"unknown");
+            println!("{}: syscall {} -> {}", pid, name, tf.a0);
+        }
     }
 
     /// # 功能说明
@@ -665,6 +679,9 @@ impl Proc {
         let child = unsafe { PROC_MANAGER.alloc_proc().ok_or(())? };
         let mut cexcl = child.excl.lock();
         let cdata = unsafe { child.data.get().as_mut().unwrap() };
+
+        // copy trace mask
+        cdata.trace_mask = pdata.trace_mask;
 
         // clone memory
         let cpgt = cdata.pagetable.as_mut().unwrap();

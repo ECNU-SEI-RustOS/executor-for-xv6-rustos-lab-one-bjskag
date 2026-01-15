@@ -39,6 +39,7 @@ pub trait Syscall {
     fn sys_link(&mut self) -> SysResult;
     fn sys_mkdir(&mut self) -> SysResult;
     fn sys_close(&mut self) -> SysResult;
+    fn sys_trace(&mut self) -> SysResult;
 }
 
 impl Syscall for Proc {
@@ -497,6 +498,14 @@ impl Syscall for Proc {
 
         drop(file);
         Ok(0)
+    }
+
+    ///实现系统调用 sys_trace
+    pub fn sys_trace() -> SysResult {
+        let mask = argint(0) as usize;
+        let proc = myproc();
+        proc.trace_mask = mask;
+    0
     }
 }
 
