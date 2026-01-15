@@ -102,6 +102,8 @@ pub struct ProcData {
     pub pagetable: Option<Box<PageTable>>,
     /// 进程当前工作目录的 inode。
     pub cwd: Option<Inode>,
+
+    pub trace_mask: usize,
 }
 
 
@@ -116,6 +118,7 @@ impl ProcData {
             tf: ptr::null_mut(),
             pagetable: None,
             cwd: None,
+            trace_mask:0,
         }
     }
 
@@ -538,7 +541,7 @@ impl Proc {
         let mask = self.data.get_mut().trace_mask;
         if (mask & (1 << a7)) != 0 {
             let pid = self.excl.lock().pid;
-            let name = SYSCALL_NAMES
+            let name = sys_result
                 .get(a7)
                 .unwrap_or(&"unknown");
             println!("{}: syscall {} -> {}", pid, name, tf.a0);

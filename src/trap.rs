@@ -22,7 +22,7 @@ pub unsafe fn trap_init_hart() {
 
 /// uservec in trampoline.S jumps here 
 #[no_mangle]
-pub unsafe extern fn user_trap() {
+pub unsafe extern "C" fn user_trap() {
     if !sstatus::is_from_user() {
         panic!("not from user mode, sstatus={:#x}", sstatus::read());
     }
