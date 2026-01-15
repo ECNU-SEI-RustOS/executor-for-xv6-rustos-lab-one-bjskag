@@ -59,6 +59,7 @@ pub struct ProcExcl {
     pub channel: usize,
     /// 进程的唯一标识符（进程ID）。
     pub pid: usize,
+    pub trace_mask: usize,
 }
 
 
@@ -69,6 +70,7 @@ impl ProcExcl {
             exit_status: 0,
             channel: 0,
             pid: 0,
+            trace_mask:0,
         }
     }
 
@@ -78,6 +80,7 @@ impl ProcExcl {
         self.channel = 0;
         self.exit_status = 0;
         self.state = ProcState::UNUSED;
+        self.trace_mask = 0;
     }
 }
 
