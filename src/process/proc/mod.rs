@@ -755,7 +755,8 @@ impl Proc {
         let cdata = unsafe { child.data.get().as_mut().unwrap() };
 
         // copy trace mask
-        cdata.trace_mask = pdata.trace_mask;
+        cexcl.trace_mask = self.excl.lock().trace_mask; 
+
 
         // clone memory
         let cpgt = cdata.pagetable.as_mut().unwrap();
