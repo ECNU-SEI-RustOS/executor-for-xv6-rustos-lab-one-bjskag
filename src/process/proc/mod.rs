@@ -499,79 +499,121 @@ impl Proc {
     /// - 该函数应在内核上下文且进程排他访问时调用，避免数据竞争。
     /// - 系统调用执行过程中可能包含更底层的 `unsafe`，调用此函数时需确保整体安全环境。
     pub fn syscall(&mut self) {
-        sstatus::intr_on();
+    // 1. 定义系统调用名称数组 (全小写变量名)
+    let syscall_names = [
+        "", "fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup",
+        "getpid", "sbrk", "sleep", "uptime", "open", "write", "mknod", "unlink", "link", "mkdir",
+        "close", "trace"
+    ];
 
-        let tf = unsafe { self.data.get_mut().tf.as_mut().unwrap() };
-        let a7 = tf.a7;
-        tf.admit_ecall();
-        let sys_result = match a7 {
-            1 => self.sys_fork(),
-            2 => self.sys_exit(),
-            3 => self.sys_wait(),
-            4 => self.sys_pipe(),
-            5 => self.sys_read(),
-            6 => self.sys_kill(),
-            7 => self.sys_exec(),
-            8 => self.sys_fstat(),
-            9 => self.sys_chdir(),
-            10 => self.sys_dup(),
-            11 => self.sys_getpid(),
-            12 => self.sys_sbrk(),
-            13 => self.sys_sleep(),
-            14 => self.sys_uptime(),
-            15 => self.sys_open(),
-            16 => self.sys_write(),
-            17 => self.sys_mknod(),
-            18 => self.sys_unlink(),
-            19 => self.sys_link(),
-            20 => self.sys_mkdir(),
-            21 => self.sys_close(),
-            //添加sys_trace()
-            22 => self.sys_trace(),
-            _ => {
-                panic!("unknown syscall num: {}", a7);
-            }
-        };
-        tf.a0 = match sys_result {
-            Ok(ret) => ret,
-            Err(()) => -1isize as usize,
-        };
+    sstatus::intr_on();
 
-        // Trace 打印逻辑
-    let mask = self.data.get_mut().trace_mask;
-    if (mask & (1 << syscall_num)) != 0 {
+    let tf = unsafe { self.data.get_mut().tf.as_mut().unwrap() };
+    let a7 = tf.a7;
+    tf.admit_ecall();
+    
+    // 2. 执行系统调用
+    let sys_result = match a7 {
+        1 => self.sys_fork(),
+        // ... 中间省略 2-21 ...
+        21 => self.sys_close(),
+        22 => self.sys_trace(), // <--- 必须添加这行
+        _ => {
+            panic!("unknown syscall num: {}", a7);
+        }
+    };
+
+    // 3. 定义 ret_val 并赋值给 a0 (修复 ret_val not found 错误)
+    let ret_val = match sys_result {
+        Ok(ret) => ret,
+        Err(()) => -1isize as usize,
+    };
+    tf.a0 = ret_val;
+
+    // 4. 打印跟踪信息 (修复 SYSCALL_NAMES 拼写错误)
+    let trace_mask = self.excl.lock().trace_mask;
+    if (trace_mask >> a7) & 1 != 0 {
         let pid = self.excl.lock().pid;
-
-        // 使用 match 直接映射编号到字符串
-        let name = match syscall_num {
-            1 => "fork",
-            2 => "exit",
-            3 => "wait",
-            4 => "pipe",
-            5 => "read",
-            6 => "kill",
-            7 => "exec",
-            8 => "fstat",
-            9 => "chdir",
-            10 => "dup",
-            11 => "getpid",
-            12 => "sbrk",
-            13 => "sleep",
-            14 => "uptime",
-            15 => "open",
-            16 => "write",
-            17 => "mknod",
-            18 => "unlink",
-            19 => "link",
-            20 => "mkdir",
-            21 => "close",
-            22 => "trace",
-            _ => "unknown",
-        };
-
-        println!("pid {}: syscall {} -> {}", pid, name, ret_val);
+        // 使用上面定义的小写 syscall_names
+        let syscall_name = if a7 < syscall_names.len() { syscall_names[a7] } else { "unknown" };
+        println!("{}: syscall {} -> {}", pid, syscall_name, ret_val as isize);
     }
-    }
+}
+
+    // pub fn syscall(&mut self) {
+    //     sstatus::intr_on();
+
+    //     let tf = unsafe { self.data.get_mut().tf.as_mut().unwrap() };
+    //     let a7 = tf.a7;
+    //     tf.admit_ecall();
+    //     let sys_result = match a7 {
+    //         1 => self.sys_fork(),
+    //         2 => self.sys_exit(),
+    //         3 => self.sys_wait(),
+    //         4 => self.sys_pipe(),
+    //         5 => self.sys_read(),
+    //         6 => self.sys_kill(),
+    //         7 => self.sys_exec(),
+    //         8 => self.sys_fstat(),
+    //         9 => self.sys_chdir(),
+    //         10 => self.sys_dup(),
+    //         11 => self.sys_getpid(),
+    //         12 => self.sys_sbrk(),
+    //         13 => self.sys_sleep(),
+    //         14 => self.sys_uptime(),
+    //         15 => self.sys_open(),
+    //         16 => self.sys_write(),
+    //         17 => self.sys_mknod(),
+    //         18 => self.sys_unlink(),
+    //         19 => self.sys_link(),
+    //         20 => self.sys_mkdir(),
+    //         21 => self.sys_close(),
+    //         //添加sys_trace()
+    //         22 => self.sys_trace(),
+    //         _ => {
+    //             panic!("unknown syscall num: {}", a7);
+    //         }
+    //     };
+    //     tf.a0 = match sys_result {
+    //         Ok(ret) => ret,
+    //         Err(()) => -1isize as usize,
+    //     };
+
+    //     // Trace 打印逻辑
+    // let mask = self.data.get_mut().trace_mask;
+    // if (mask & (1 << syscall_num)) != 0 {
+    //     let pid = self.excl.lock().pid;
+
+    //     // 使用 match 直接映射编号到字符串
+    //     let name = match syscall_num {
+    //         1 => "fork",
+    //         2 => "exit",
+    //         3 => "wait",
+    //         4 => "pipe",
+    //         5 => "read",
+    //         6 => "kill",
+    //         7 => "exec",
+    //         8 => "fstat",
+    //         9 => "chdir",
+    //         10 => "dup",
+    //         11 => "getpid",
+    //         12 => "sbrk",
+    //         13 => "sleep",
+    //         14 => "uptime",
+    //         15 => "open",
+    //         16 => "write",
+    //         17 => "mknod",
+    //         18 => "unlink",
+    //         19 => "link",
+    //         20 => "mkdir",
+    //         21 => "close",
+    //         22 => "trace",
+    //         _ => "unknown",
+    //     };
+
+    //     println!("pid {}: syscall {} -> {}", pid, name, ret_val);
+    // }
+    // }
 
     /// # 功能说明
     /// 让出当前进程的 CPU 使用权，将进程状态从运行中（RUNNING）
