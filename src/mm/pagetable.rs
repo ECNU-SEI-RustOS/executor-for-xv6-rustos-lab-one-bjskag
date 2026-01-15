@@ -118,43 +118,6 @@ impl PageTableEntry {
         PteFlag::from_bits_truncate(self.data)
     }
 
-    // 1. 打印页表入口函数
-    pub fn vm_print(&self) {
-        // 如果 self 已经是 PageTable 结构体引用，直接打印其地址或调用 as_satp
-        // 注意：as_satp 应该是 PageTable 的方法
-        println!("page table {:#x}", self.as_satp()); 
-        self.vm_print_level(0);
-    }
-
-    // 2. 递归辅助函数
-    fn vm_print_level(&self, level: usize) {
-        // 关键点：xv6-rust 中 PageTable 通常是一个包含 [PageTableEntry; 512] 的数组
-        // 如果你的 PageTable 定义是 pub struct PageTable([PageTableEntry; 512]);
-        // 则使用 self.0.iter()。如果是字段名 data，且 data 是数组，则如下：
-        
-        // 假设 PageTable 结构如下: pub struct PageTable { pub entries: [PageTableEntry; 512] }
-        // 如果你的报错显示 self.data 是 usize，说明你需要先转换：
-        let entries = unsafe {
-            &*(self as *const PageTable as *const [PageTableEntry; 512])
-        };
-
-        for (i, pte) in entries.iter().enumerate() {
-            if pte.is_valid() {
-                // 打印缩进
-                for _ in 0..level {
-                    print!(".. ");
-                }
-                print!("..{}: pte {:#x} pa {:#x}\n", i, pte.as_usize(), pte.as_phys_addr().as_usize());
-
-                // 如果不是叶子节点，继续递归
-                if !pte.is_leaf() {
-                    let child_pt_ptr = pte.as_page_table();
-                    let child_pt = unsafe { &*child_pt_ptr };
-                    child_pt.vm_print_level(level + 1);
-                }
-            }
-        }
-    }
 
     /// # 功能说明
     /// 尝试克隆当前页表项所映射的物理页内容，返回一块新的内存页指针，  
@@ -243,6 +206,44 @@ impl PageTable {
     /// that can be written in satp register
     pub fn as_satp(&self) -> usize {
         SATP_SV39 | ((self as *const PageTable as usize) >> PGSHIFT)
+    }
+
+    // 1. 打印页表入口函数
+    pub fn vm_print(&self) {
+        // 如果 self 已经是 PageTable 结构体引用，直接打印其地址或调用 as_satp
+        // 注意：as_satp 应该是 PageTable 的方法
+        println!("page table {:#x}", self.as_satp()); 
+        self.vm_print_level(0);
+    }
+
+    // 2. 递归辅助函数
+    fn vm_print_level(&self, level: usize) {
+        // 关键点：xv6-rust 中 PageTable 通常是一个包含 [PageTableEntry; 512] 的数组
+        // 如果你的 PageTable 定义是 pub struct PageTable([PageTableEntry; 512]);
+        // 则使用 self.0.iter()。如果是字段名 data，且 data 是数组，则如下：
+        
+        // 假设 PageTable 结构如下: pub struct PageTable { pub entries: [PageTableEntry; 512] }
+        // 如果你的报错显示 self.data 是 usize，说明你需要先转换：
+        let entries = unsafe {
+            &*(self as *const PageTable as *const [PageTableEntry; 512])
+        };
+
+        for (i, pte) in entries.iter().enumerate() {
+            if pte.is_valid() {
+                // 打印缩进
+                for _ in 0..level {
+                    print!(".. ");
+                }
+                print!("..{}: pte {:#x} pa {:#x}\n", i, pte.as_usize(), pte.as_phys_addr().as_usize());
+
+                // 如果不是叶子节点，继续递归
+                if !pte.is_leaf() {
+                    let child_pt_ptr = pte.as_page_table();
+                    let child_pt = unsafe { &*child_pt_ptr };
+                    child_pt.vm_print_level(level + 1);
+                }
+            }
+        }
     }
 
     /// # 功能说明
