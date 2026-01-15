@@ -208,16 +208,35 @@ impl PageTable {
         SATP_SV39 | ((self as *const PageTable as usize) >> PGSHIFT)
     }
 
-    // 1. 打印页表入口函数
+     // 打印页表入口函数
     pub fn vm_print(&self) {
-        // 如果 self 已经是 PageTable 结构体引用，直接打印其地址或调用 as_satp
-        // 注意：as_satp 应该是 PageTable 的方法
-        println!("page table {:#x}", self.as_satp()); 
+        println!("page table {:#x}", self.as_satp());
         self.vm_print_level(0);
     }
 
-    // 2. 递归辅助函数
+    // 递归辅助函数
     fn vm_print_level(&self, level: usize) {
+        for (i, pte) in self.data.iter().enumerate() {
+            if pte.is_valid() {
+                // 打印前导点 (已修复: 使用变量 j 而不是 _)
+                for j in 0..=level {
+                    print!("..");
+                    if j < level {
+                        print!(" ");
+                    }
+                }
+                
+                let pa = pte.as_phys_addr();
+                println!("{}: pte {:#x} pa {:#x}", i, pte.data, pa.as_usize());
+
+                if !pte.is_leaf() {
+                    let child_pt_ptr = pte.as_page_table();
+                    let child_pt = unsafe { &*child_pt_ptr };
+                    child_pt.vm_print_level(level + 1);
+                }
+            }
+        }
+    }
         // 关键点：xv6-rust 中 PageTable 通常是一个包含 [PageTableEntry; 512] 的数组
         // 如果你的 PageTable 定义是 pub struct PageTable([PageTableEntry; 512]);
         // 则使用 self.0.iter()。如果是字段名 data，且 data 是数组，则如下：
