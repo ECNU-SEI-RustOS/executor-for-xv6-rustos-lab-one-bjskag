@@ -59,7 +59,7 @@ pub struct ProcExcl {
     pub channel: usize,
     /// 进程的唯一标识符（进程ID）。
     pub pid: usize,
-    pub trace_mask: usize,
+    pub trace_mask: i32,
 }
 
 
@@ -106,7 +106,7 @@ pub struct ProcData {
     /// 进程当前工作目录的 inode。
     pub cwd: Option<Inode>,
 
-    pub trace_mask: usize,
+    pub trace_mask: i32,
 }
 
 
@@ -388,7 +388,7 @@ pub struct Proc {
     /// 标识进程是否被杀死的原子布尔变量，用于调度和信号处理。
     pub killed: AtomicBool,
     /// trace mask
-    pub trace_mask:usize,
+    pub trace_mask:i32,
 }
 
 impl Proc {
@@ -533,11 +533,11 @@ impl Proc {
     };
     tf.a0 = ret_val;
 
-    // 4. 打印跟踪信息 (修复 SYSCALL_NAMES 拼写错误)
+    // 打印跟踪信息
     let trace_mask = self.excl.lock().trace_mask;
     if (trace_mask >> a7) & 1 != 0 {
         let pid = self.excl.lock().pid;
-        // 使用上面定义的小写 syscall_names
+        // 使用上面定义的syscall_names
         let syscall_name = if a7 < syscall_names.len() { syscall_names[a7] } else { "unknown" };
         println!("{}: syscall {} -> {}", pid, syscall_name, ret_val as isize);
     }
