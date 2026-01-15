@@ -106,7 +106,7 @@ pub struct ProcData {
     /// 进程当前工作目录的 inode。
     pub cwd: Option<Inode>,
 
-    pub trace_mask: i32,
+    pub trace_mask: usize,
 }
 
 
