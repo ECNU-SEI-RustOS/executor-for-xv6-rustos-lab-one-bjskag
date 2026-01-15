@@ -189,6 +189,20 @@ impl Syscall for Proc {
         #[cfg(feature = "trace_syscall")]
         println!("[{}].exec({}, {:#x}) = {:?}", self.excl.lock().pid, String::from_utf8_lossy(&path), uargv, result);
 
+          //if result.is_ok
+        if result.is_ok() {
+            let guard = self.excl.lock();
+            if guard.pid == 1 {
+                let data = self.data.get_mut();
+                if let Some(ref pt) = data.pagetable {
+                    // 不传参数，直接调用 vm_print()
+                    pt.vm_print(); 
+                }
+            }
+            drop(guard);
+        }
+
+
         if result.is_err() {
             syscall_warning(error);
         }

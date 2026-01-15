@@ -176,6 +176,36 @@ impl PageTableEntry {
             }
         }
     }
+
+    // 打印页表入口函数
+    pub fn vm_print(&self) {
+        println!("page table {:#x}", self.as_satp());
+        self.vm_print_level(0);
+    }
+
+    // 递归辅助函数
+    fn vm_print_level(&self, level: usize) {
+        for (i, pte) in self.data.iter().enumerate() {
+            if pte.is_valid() {
+                for j in 0..=level {
+                    print!("..");
+                    if j < level {
+                        print!(" ");
+                    }
+                }
+                
+                let pa = pte.as_phys_addr();
+                println!("{}: pte {:#x} pa {:#x}", i, pte.data, pa.as_usize());
+
+                if !pte.is_leaf() {
+                    let child_pt_ptr = pte.as_page_table();
+                    let child_pt = unsafe { &*child_pt_ptr };
+                    child_pt.vm_print_level(level + 1);
+                }
+            }
+        }
+    }
+
 }
 
 /// 页表结构体（PageTable）
