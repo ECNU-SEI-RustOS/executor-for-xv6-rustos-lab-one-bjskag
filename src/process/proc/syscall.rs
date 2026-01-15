@@ -502,12 +502,10 @@ impl Syscall for Proc {
 
     ///实现系统调用 sys_trace
     fn sys_trace(&mut self) -> SysResult{
-        
-        let mask = self.argint(0)?; 
-        
+        let tf = unsafe { &*self.trapframe }; 
         // 直接访问 self.data，不需要调用 myproc()
         // 获取可变引用 (假设使用了 Mutex 或 SpinLock，需调用 lock() 或 get_mut())
-        let mut pdata = self.data.get_mut(); 
+        let mask = tf.a0;
         
         // 设置 mask
         pdata.trace_mask = mask; // 此时 mask 已经是 usize

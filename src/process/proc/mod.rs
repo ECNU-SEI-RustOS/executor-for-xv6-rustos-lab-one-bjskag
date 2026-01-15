@@ -537,15 +537,40 @@ impl Proc {
             Err(()) => -1isize as usize,
         };
 
-        // ===== trace print logic =====
-        let mask = self.data.get_mut().trace_mask;
-        if (mask & (1 << a7)) != 0 {
-            let pid = self.excl.lock().pid;
-            let name = sys_result
-                .get(a7)
-                .unwrap_or(&"unknown");
-            println!("{}: syscall {} -> {}", pid, name, tf.a0);
-        }
+        // Trace 打印逻辑
+    let mask = self.data.get_mut().trace_mask;
+    if (mask & (1 << syscall_num)) != 0 {
+        let pid = self.excl.lock().pid;
+
+        // 使用 match 直接映射编号到字符串
+        let name = match syscall_num {
+            1 => "fork",
+            2 => "exit",
+            3 => "wait",
+            4 => "pipe",
+            5 => "read",
+            6 => "kill",
+            7 => "exec",
+            8 => "fstat",
+            9 => "chdir",
+            10 => "dup",
+            11 => "getpid",
+            12 => "sbrk",
+            13 => "sleep",
+            14 => "uptime",
+            15 => "open",
+            16 => "write",
+            17 => "mknod",
+            18 => "unlink",
+            19 => "link",
+            20 => "mkdir",
+            21 => "close",
+            22 => "trace",
+            _ => "unknown",
+        };
+
+        println!("pid {}: syscall {} -> {}", pid, name, ret_val);
+    }
     }
 
     /// # 功能说明
