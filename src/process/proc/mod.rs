@@ -517,10 +517,29 @@ impl Proc {
     
     // 2. 执行系统调用
     let sys_result = match a7 {
-        1 => self.sys_fork(),
-        // ... 中间省略 2-21 ...
-        21 => self.sys_close(),
-        22 => self.sys_trace(), // <--- 必须添加这行
+            1 => self.sys_fork(),
+            2 => self.sys_exit(),
+            3 => self.sys_wait(),
+            4 => self.sys_pipe(),
+            5 => self.sys_read(),
+            6 => self.sys_kill(),
+            7 => self.sys_exec(),
+            8 => self.sys_fstat(),
+            9 => self.sys_chdir(),
+            10 => self.sys_dup(),
+            11 => self.sys_getpid(),
+            12 => self.sys_sbrk(),
+            13 => self.sys_sleep(),
+            14 => self.sys_uptime(),
+            15 => self.sys_open(),
+            16 => self.sys_write(),
+            17 => self.sys_mknod(),
+            18 => self.sys_unlink(),
+            19 => self.sys_link(),
+            20 => self.sys_mkdir(),
+            21 => self.sys_close(),
+            //添加sys_trace()
+            22 => self.sys_trace(),
         _ => {
             panic!("unknown syscall num: {}", a7);
         }
@@ -550,29 +569,7 @@ impl Proc {
     //     let a7 = tf.a7;
     //     tf.admit_ecall();
     //     let sys_result = match a7 {
-    //         1 => self.sys_fork(),
-    //         2 => self.sys_exit(),
-    //         3 => self.sys_wait(),
-    //         4 => self.sys_pipe(),
-    //         5 => self.sys_read(),
-    //         6 => self.sys_kill(),
-    //         7 => self.sys_exec(),
-    //         8 => self.sys_fstat(),
-    //         9 => self.sys_chdir(),
-    //         10 => self.sys_dup(),
-    //         11 => self.sys_getpid(),
-    //         12 => self.sys_sbrk(),
-    //         13 => self.sys_sleep(),
-    //         14 => self.sys_uptime(),
-    //         15 => self.sys_open(),
-    //         16 => self.sys_write(),
-    //         17 => self.sys_mknod(),
-    //         18 => self.sys_unlink(),
-    //         19 => self.sys_link(),
-    //         20 => self.sys_mkdir(),
-    //         21 => self.sys_close(),
-    //         //添加sys_trace()
-    //         22 => self.sys_trace(),
+          
     //         _ => {
     //             panic!("unknown syscall num: {}", a7);
     //         }
